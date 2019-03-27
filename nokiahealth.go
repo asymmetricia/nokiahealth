@@ -19,16 +19,17 @@ import (
 )
 
 const (
-	getIntradayActivitiesURL      = "https://api.health.nokia.com/v2/measure"
-	getActivityMeasuresURL        = "https://api.health.nokia.com/v2/measure"
-	getWorkoutsURL                = "https://api.health.nokia.com/v2/measure"
-	getBodyMeasureURL             = "https://api.health.nokia.com/measure"
-	getSleepMeasureURL            = "https://api.health.nokia.com/v2/sleep"
-	getSleepSummaryURL            = "https://api.health.nokia.com/v2/sleep"
-	createNotficationURL          = "https://api.health.nokia.com/notify"
-	listNotificationsURL          = "https://api.health.nokia.com/notify"
-	getNotificationInformationURL = "https://api.health.nokia.com/notify"
-	revokeNotificationURL         = "https://api.health.nokia.com/notify"
+	apiHost                       = "wbsapi.withings.net"
+	getIntradayActivitiesURL      = "https://" + apiHost + "/v2/measure"
+	getActivityMeasuresURL        = "https://" + apiHost + "/v2/measure"
+	getWorkoutsURL                = "https://" + apiHost + "/v2/measure"
+	getBodyMeasureURL             = "https://" + apiHost + "/measure"
+	getSleepMeasureURL            = "https://" + apiHost + "/v2/sleep"
+	getSleepSummaryURL            = "https://" + apiHost + "/v2/sleep"
+	createNotficationURL          = "https://" + apiHost + "/notify"
+	listNotificationsURL          = "https://" + apiHost + "/notify"
+	getNotificationInformationURL = "https://" + apiHost + "/notify"
+	revokeNotificationURL         = "https://" + apiHost + "/notify"
 )
 
 // Scope defines the types of scopes accepted by the API.
