@@ -1,9 +1,9 @@
 
 <img align="right" src="./nh_logo_small.png"/>
 
-# Go client for the Nokia Health API
+# Go client for the Withings API
 
-This is a go client that allows easy access to the Nokia Health API and as of v2 supports the required Oauth2. More documentation regarding the Nokia Health API can be found [here](http://developer.health.nokia.com/oauth2/#tag/introduction). More detailed documentation of the client can be found in the [godocs](https://godoc.org/github.com/jrmycanady/nokiahealth).
+This is a go client that allows easy access to the Withings API and as of v2 supports the required Oauth2. More documentation regarding the Withings API can be found [here](http://developer.withings.com/oauth2/#tag/introduction). More detailed documentation of the client can be found in the [godocs](https://godoc.org/github.com/jrmycanady/nokiahealth).
 
 ## v1 to v2 Changes
 
@@ -29,7 +29,7 @@ Nokia changed the API to allow Oauth2 while removing Oauth1 as an option. Due to
 It's best if you read up on Oauth2 if you are not familiar but the client should be simple enough to get working without understanding how Oauth2 works.
 
 ### New User
-* Create a [nokia account and register your app](https://account.health.nokia.com/partner/dashboard_oauth2).
+* Create a [withings account and register your app](https://account.withings.com/partner/dashboard_oauth2).
 * Create a client and perform the tasks to get the token/user struct.
     * Send user to Oauth2 authorization URL.
     * Catch the redirect back via a server or manually pulling the "code" from the path.
@@ -50,10 +50,10 @@ It's best if you read up on Oauth2 if you are not familiar but the client should
 ```go
 clientID := "id"
 clientSecrete := "secret"
-clientRedirectURL := "url" // This is the URL nokia will redirect the client to 
+clientRedirectURL := "url" // This is the URL Withings will redirect the client to 
                            // after they authorized your application. This is
                            // the same URL you provided when you registered your
-                           // application with Nokia. 
+                           // application with Withings. 
                            // For any real world use you will need to have a
                            // http server running and listening on that URL
                            // so you can obtain the code that is retruned.
@@ -69,7 +69,7 @@ authURL, _, err := client.AuthCodeURL() // Ignoring the state in this example
                                         // but in realworld use you will want
                                         // to record this to compare to the
                                         // state value returned by the redirect
-                                        // from nokia to verify its a redirect
+                                        // from Withings to verify its a redirect
                                         // from your request. 
                                         // The stat is auto generated for you
                                         // using cyrto/rand but the random
@@ -94,10 +94,10 @@ if err != nil {
 ```go
 clientID := "id"
 clientSecrete := "secret"
-clientRedirectURL := "url" // This is the URL nokia will redirect the client to 
+clientRedirectURL := "url" // This is the URL Withings will redirect the client to 
                            // after they authorized your application. This is
                            // the same URL you provided when you registered your
-                           // application with Nokia. 
+                           // application with Withings. 
                            // For any real world use you will need to have a
                            // http server running and listening on that URL
                            // so you can obtain the code that is returned.

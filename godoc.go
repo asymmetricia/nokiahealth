@@ -1,10 +1,10 @@
 /*
-Package nokiahealth is a client module for working with the Nokia Health (previously Withings) API. The current version (v2) of this module has been updated to work with the newer Oauth2 implementation of the API.
+Package nokiahealth is a client module for working with the Withings (previously Nokia Health (previously Withings)) API. The current version (v2) of this module has been updated to work with the newer Oauth2 implementation of the API.
 
 Authorization Overview
 
-As with all Oauth2 APIs, you must obtain authorization to access the users data. To do so you must first register your application with the nokia health api to obtain a ClientID and ClientSecret.
-	http://developer.health.nokia.com/oauth2/#tag/introduction
+As with all Oauth2 APIs, you must obtain authorization to access the users data. To do so you must first register your application with the Withings api to obtain a ClientID and ClientSecret.
+	http://developer.withings.com/oauth2/#tag/introduction
 
 Once you have your client information you can now create a new client. You will need to also provide the redirectURL you provided during application registration. This URL is where the user will be redirected to and will include the code you need to generate the accessToken needed to access the users data. Under normal situations you should have an http server listening on that address and pull the code from the URL query parameters.
 	client := nokiahealth.NewClient(clientID, clientSecret, clientRedirectURL)

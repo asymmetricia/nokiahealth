@@ -15,7 +15,6 @@ import (
 
 	"github.com/jrmycanady/nokiahealth/enum/status"
 	"golang.org/x/oauth2"
-	nokiaOauth2 "golang.org/x/oauth2/nokiahealth"
 )
 
 const (
@@ -56,7 +55,7 @@ func generateRandomString() (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), err
 }
 
-// Client contains all the required information to interact with the nokia API.
+// Client contains all the required information to interact with the Withings API.
 type Client struct {
 	OAuth2Config    *oauth2.Config
 	SaveRawResponse bool
@@ -66,7 +65,7 @@ type Client struct {
 }
 
 // NewClient creates a new client using the Ouath2 information provided. The
-// required parameters can be obtained when developers register with Nokia
+// required parameters can be obtained when developers register with Withings
 // to use the API.
 func NewClient(clientID string, clientSecret string, redirectURL string) Client {
 
@@ -77,7 +76,7 @@ func NewClient(clientID string, clientSecret string, redirectURL string) Client 
 			ClientSecret: clientSecret,
 			// Scopes:       []string{"user.metrics", "user.activity"},
 			Scopes:   []string{"user.activity,user.metrics,user.info"},
-			Endpoint: nokiaOauth2.Endpoint,
+			Endpoint: Oauth2Endpoint,
 		},
 		Rand:    generateRandomString,
 		Timeout: 5 * time.Second,
@@ -119,7 +118,7 @@ func (c *Client) GenerateAccessToken(ctx context.Context, code string) (*oauth2.
 	return c.OAuth2Config.Exchange(ctx, code)
 }
 
-// User is a Nokia Health user account that can be interacted with via the
+// User is a Withings Health user account that can be interacted with via the
 // api.
 type User struct {
 	Client               *Client
@@ -197,7 +196,7 @@ func (u *User) GetIntradayActivity(params *IntradayActivityQueryParam) (Intraday
 }
 
 // GetIntradayActivityCtx retreieves intraday activites from the API. Special permissions provided by
-// Nokia Health are required to use this resource.
+// Withings Health are required to use this resource.
 func (u *User) GetIntradayActivityCtx(ctx context.Context, params *IntradayActivityQueryParam) (IntradayActivityResp, error) {
 	intraDayActivityResponse := IntradayActivityResp{}
 

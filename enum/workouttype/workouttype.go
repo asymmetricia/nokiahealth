@@ -3,7 +3,7 @@ package workouttype
 //go:generate stringer -type=WorkoutType
 type WorkoutType int
 
-// WorkoutType constants for the nokia health api.
+// WorkoutType constants for the Withings api.
 const (
 	Walk         WorkoutType = 1
 	Run          WorkoutType = 2

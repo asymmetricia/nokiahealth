@@ -94,7 +94,7 @@ type NotificationProfile struct {
 }
 
 // CreateNotificationParam provides the query parameters nessasary to create a notication
-// via the Nokia Health API.
+// via the Withings API.
 type CreateNotificationParam struct {
 	CallbackURL url.URL `json:"callbackurl"`
 	Comment     string  `json:"comment"`
@@ -294,7 +294,7 @@ type ActivitiesMeasuresResp struct {
 }
 
 // ActivitiesMeasuresRespBody contains the response body as provided by the
-// api. The Nokia Health API includes single values responses directly in the
+// api. The Withings API includes single values responses directly in the
 // body. As such they are all pointers. You may check SingleValue to determine
 // if a single value was provided.
 type ActivitiesMeasuresRespBody struct {
@@ -314,7 +314,7 @@ type ActivitiesMeasuresRespBody struct {
 	SingleValue bool       `json:"singleValue"`
 }
 
-// Activity represents an activity as recorded by Nokia Health.
+// Activity represents an activity as recorded by Withings.
 type Activity struct {
 	ParsedDate *time.Time `json:"parseddate"`
 	Date       string     `json:"date"`

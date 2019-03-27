@@ -3,7 +3,7 @@ package devtype
 //go:generate stringer -type=DevType
 type DevType int
 
-// DevType constants for the nokia health api.
+// DevType constants for the Withings api.
 const (
 	UserRelated          DevType = 0
 	BodyScale                    = 1

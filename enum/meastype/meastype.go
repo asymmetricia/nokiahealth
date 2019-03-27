@@ -3,7 +3,7 @@ package meastype
 //go:generate stringer -type=MeasType
 type MeasType int
 
-// MeasType constants for the nokia health api.
+// MeasType constants for the Withings api.
 const (
 	Weight                     MeasType = 1
 	Height                              = 4
