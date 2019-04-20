@@ -7,5 +7,5 @@ import (
 // Endpoint is Withing's OAuth 2.0 endpoint.
 var Oauth2Endpoint = oauth2.Endpoint{
 	AuthURL:  "https://account.withings.com/oauth2_user/authorize2",
-	TokenURL: "hhttps://account.withings.com/oauth2/token",
+	TokenURL: "https://account.withings.com/oauth2/token",
 }
