@@ -7,7 +7,7 @@ This is a go client that allows easy access to the Withings API and as of v2 sup
 
 ## v1 to v2 Changes
 
-Nokia changed the API to allow Oauth2 while removing Oauth1 as an option. Due to this change, the client API has changed when it comes to handling authentication and tokens. For the most part the changes make things easier but they are breaking changes. The good new is there is no longer a dependency on the forked Ouath1 implementation. 
+Nokia changed the API to allow Oauth2 while removing Oauth1 as an option. Due to this change, the client API has changed when it comes to handling authentication and tokens. For the most part the changes make things easier but they are breaking changes. The good new is there is no longer a dependency on the forked Ouath1 implementation.
 
 ## Supported Resources
 * User Access Requests
@@ -50,10 +50,10 @@ It's best if you read up on Oauth2 if you are not familiar but the client should
 ```go
 clientID := "id"
 clientSecrete := "secret"
-clientRedirectURL := "url" // This is the URL Withings will redirect the client to 
+clientRedirectURL := "url" // This is the URL Withings will redirect the client to
                            // after they authorized your application. This is
                            // the same URL you provided when you registered your
-                           // application with Withings. 
+                           // application with Withings.
                            // For any real world use you will need to have a
                            // http server running and listening on that URL
                            // so you can obtain the code that is retruned.
@@ -70,7 +70,7 @@ authURL, _, err := client.AuthCodeURL() // Ignoring the state in this example
                                         // to record this to compare to the
                                         // state value returned by the redirect
                                         // from Withings to verify its a redirect
-                                        // from your request. 
+                                        // from your request.
                                         // The stat is auto generated for you
                                         // using cyrto/rand but the random
                                         // generation can be replaced with your
@@ -94,10 +94,10 @@ if err != nil {
 ```go
 clientID := "id"
 clientSecrete := "secret"
-clientRedirectURL := "url" // This is the URL Withings will redirect the client to 
+clientRedirectURL := "url" // This is the URL Withings will redirect the client to
                            // after they authorized your application. This is
                            // the same URL you provided when you registered your
-                           // application with Withings. 
+                           // application with Withings.
                            // For any real world use you will need to have a
                            // http server running and listening on that URL
                            // so you can obtain the code that is returned.
@@ -109,7 +109,7 @@ client := nokiahealth.NewClient(clientID, clientSecret, clientRedirectURL)
 ```
 **2. Generate a new user from the stored tokens.**
 ```go
-// This creates a new user based on the tokens provided. Technically the 
+// This creates a new user based on the tokens provided. Technically the
 // accessToken can be gibberish and the refresh Token is the one that is really
 // required.
 u, err := client.NewUserFromRefreshToken(context.Background(), accessToken, refreshToken)
