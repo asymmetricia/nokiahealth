@@ -121,10 +121,9 @@ func (c *Client) GenerateAccessToken(ctx context.Context, code string) (*oauth2.
 // User is a Withings Health user account that can be interacted with via the
 // api.
 type User struct {
-	Client           *Client
-	OauthToken       *oauth2.Token
-	HTTPClient       *http.Client
-	lastRefreshToken string
+	*Client
+	OauthToken *oauth2.Token
+	HTTPClient *http.Client
 }
 
 // NewUserFromAuthCode generates a new user by requesting the token using the
@@ -136,49 +135,44 @@ func (c *Client) NewUserFromAuthCode(ctx context.Context, code string) (*User, e
 		return nil, fmt.Errorf("failed to obtain token: %s", err)
 	}
 
-	return &User{
-		Client:           c,
-		OauthToken:       t,
-		HTTPClient:       c.OAuth2Config.Client(ctx, t),
-		lastRefreshToken: t.RefreshToken,
-	}, nil
+	u := &User{
+		Client:     c,
+		OauthToken: t,
+	}
+
+	u.HTTPClient = &http.Client{Transport: u}
+	return u, nil
+}
+
+func (u *User) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	src := u.OAuth2Config.TokenSource(req.Context(), u.OauthToken)
+
+	tok, err := src.Token()
+	if err != nil {
+		return nil, fmt.Errorf("getting token: %s", err)
+	}
+
+	if u.OauthToken.RefreshToken != tok.RefreshToken {
+		u.OauthToken = tok
+	}
+
+	return oauth2.NewClient(req.Context(), oauth2.StaticTokenSource(tok)).Transport.RoundTrip(req)
 }
 
 // NewUserFromRefreshToken generates a new user that the refresh token is for.
-// Upon creation a new access token is also generated. If the generation of the
-// access token fails, an error is returned.
-func (c *Client) NewUserFromRefreshToken(ctx context.Context, accessToken string, refreshToken string, expiry time.Time) (*User, error) {
-	t := &oauth2.Token{
-		RefreshToken: refreshToken,
-		AccessToken:  accessToken,
-		Expiry:       expiry,
+// At time of first use, a new access token will be retrieved.
+func (c *Client) NewUserFromRefreshToken(ctx context.Context, refreshToken string) *User {
+	t := &oauth2.Token{RefreshToken: refreshToken}
+
+	u := &User{
+		Client:     c,
+		OauthToken: t,
 	}
 
-	u := User{
-		Client:           c,
-		OauthToken:       t,
-		HTTPClient:       c.OAuth2Config.Client(ctx, t),
-		lastRefreshToken: t.RefreshToken,
-	}
+	u.HTTPClient = &http.Client{Transport: u}
 
-	return &u, nil
+	return u
 }
-
-//// Token returns the user token retrieving a new one via the refresh if expired. If a new one is provided
-//// User.RefreshTokenReplaced() will return true noting the refresh token should be saved.
-//func (u *User) Token() (*oauth2.Token, error) {
-//	t, err := u.TokenSource.Token()
-//	if err != nil {
-//		return t, err
-//	}
-//
-//	if t.RefreshToken != u.CurrentRefreshToken {
-//		u.CurrentRefreshToken = t.RefreshToken
-//		u.refreshTokenReplaced = true
-//	}
-//
-//	return t, nil
-//}
 
 // GetIntradayActivity is the same as GetIntraDayActivityCtx but doesn't require a context to be provided.
 func (u *User) GetIntradayActivity(params *IntradayActivityQueryParam) (IntradayActivityResp, error) {
