@@ -37,7 +37,7 @@ func (c *Client) NewUserFromAccessToken(ctx context.Context, accessToken string,
 
 	u.HTTPClient = &http.Client{Transport: u}
 
-	if u.OauthToken.Expiry.After(time.Now()) {
+	if u.OauthToken.Expiry.Before(time.Now()) {
 		return c.NewUserFromRefreshToken(ctx, refreshToken)
 	}
 
