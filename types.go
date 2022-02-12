@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/jrmycanady/nokiahealth/enum/meastype"
-	"github.com/jrmycanady/nokiahealth/enum/sleepstate"
+	"github.com/asymmetricia/nokiahealth/enum/meastype"
+	"github.com/asymmetricia/nokiahealth/enum/sleepstate"
 
-	"github.com/jrmycanady/nokiahealth/enum/devtype"
-	"github.com/jrmycanady/nokiahealth/enum/status"
+	"github.com/asymmetricia/nokiahealth/enum/devtype"
+	"github.com/asymmetricia/nokiahealth/enum/status"
 
-	"github.com/jrmycanady/nokiahealth/enum/workouttype"
+	"github.com/asymmetricia/nokiahealth/enum/workouttype"
 )
 
 // GetFieldName returns the json filed name for the field if one is found. If

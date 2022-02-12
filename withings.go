@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jrmycanady/nokiahealth/enum/status"
+	"github.com/asymmetricia/nokiahealth/enum/status"
 	"golang.org/x/oauth2"
 )
 

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/jrmycanady/nokiahealth/enum/status"
+	"github.com/asymmetricia/nokiahealth/enum/status"
 	"github.com/stretchr/testify/require"
 )
 

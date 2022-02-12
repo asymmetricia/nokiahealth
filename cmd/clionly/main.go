@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jrmycanady/nokiahealth"
+	"github.com/asymmetricia/nokiahealth"
 )
 
 func main() {
