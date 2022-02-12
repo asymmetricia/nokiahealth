@@ -17,9 +17,8 @@ import (
 // api. A user object should not be copied.
 type User struct {
 	*Client
-	RefreshToken string
-	token        *oauth2.Token
-	HTTPClient   *http.Client
+	OauthToken *oauth2.Token
+	HTTPClient *http.Client
 }
 
 // NewUserFromAccessToken returns a user with the given access token. If it's
@@ -28,18 +27,17 @@ type User struct {
 // it changes.
 func (c *Client) NewUserFromAccessToken(ctx context.Context, accessToken string, tokenExpiry time.Time, refreshToken string) (*User, error) {
 	u := &User{
-		Client:       c,
-		RefreshToken: refreshToken,
-		token: &oauth2.Token{
-			AccessToken:  accessToken,
+		Client: c,
+		OauthToken: &oauth2.Token{
 			RefreshToken: refreshToken,
+			AccessToken:  accessToken,
 			Expiry:       tokenExpiry,
 		},
 	}
 
 	u.HTTPClient = &http.Client{Transport: u}
 
-	if u.token.Expiry.After(time.Now()) {
+	if u.OauthToken.Expiry.After(time.Now()) {
 		return c.NewUserFromRefreshToken(ctx, refreshToken)
 	}
 
@@ -52,13 +50,15 @@ func (c *Client) NewUserFromAccessToken(ctx context.Context, accessToken string,
 // changes.
 func (c *Client) NewUserFromRefreshToken(ctx context.Context, refreshToken string) (*User, error) {
 	u := &User{
-		Client:       c,
-		RefreshToken: refreshToken,
+		Client: c,
+		OauthToken: &oauth2.Token{
+			RefreshToken: refreshToken,
+		},
 	}
 	u.HTTPClient = &http.Client{Transport: u}
 
 	var err error
-	u.token, err = u.TokenContext(ctx)
+	_, err = u.TokenContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating user from refresh token: %w", err)
 	}
@@ -66,35 +66,45 @@ func (c *Client) NewUserFromRefreshToken(ctx context.Context, refreshToken strin
 	return u, nil
 }
 
+// Token returns the user's oauth token, refreshing it if necessary. After a call
+// to Token, the OauthToken field may have changed, and RefreshToken should
+// persisted if so.
 func (u *User) Token() (*oauth2.Token, error) {
 	return u.TokenContext(context.Background())
 }
 
+// TokenContext is as per Token, above, but accepts a context, which will be used
+// for API calls if necessary.
 func (u *User) TokenContext(ctx context.Context) (*oauth2.Token, error) {
+	if u.OauthToken.Expiry.After(time.Now()) {
+		return u.OauthToken, nil
+	}
+
+	// Refresh the token
 	form := url.Values{}
 	form.Set("action", "requesttoken")
 	form.Set("client_id", u.OAuth2Config.ClientID)
 	form.Set("client_secret", u.OAuth2Config.ClientSecret)
 	form.Set("grant_type", "refresh_token")
-	form.Set("refresh_token", u.RefreshToken)
+	form.Set("refresh_token", u.OauthToken.RefreshToken)
 	body := bytes.NewBufferString(form.Encode())
 
 	req, err := http.NewRequest("POST", "https://wbsapi.withings.net/v2/oauth2", body)
 	if err != nil {
-		return nil, fmt.Errorf("producing new request: %w", err)
+		return nil, fmt.Errorf("producing new request in TokenContext: %w", err)
 	}
 
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 
 	res, err := (*WithingsRoundTripper)(http.DefaultClient).RoundTrip(req.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("sending request: %w", err)
+		return nil, fmt.Errorf("sending request in TokenContext: %w", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
 		body, _ := ioutil.ReadAll(res.Body)
-		return nil, fmt.Errorf("non-2XX %d from server: %q", res.StatusCode, string(body))
+		return nil, fmt.Errorf("non-2XX %d from server in TokenContext: %q", res.StatusCode, string(body))
 	}
 
 	var response struct {
@@ -109,27 +119,24 @@ func (u *User) TokenContext(ctx context.Context) (*oauth2.Token, error) {
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading body: %w", err)
+		return nil, fmt.Errorf("reading body in TokenContext: %w", err)
 	}
 
 	if err := json.Unmarshal(resBody, &response); err != nil {
-		return nil, fmt.Errorf("decoding body: %w", err)
+		return nil, fmt.Errorf("decoding body in TokenContext: %w", err)
 	}
 
-	u.RefreshToken = response.RefreshToken
-
-	return &oauth2.Token{
+	u.OauthToken = &oauth2.Token{
 		AccessToken:  response.AccessToken,
 		TokenType:    response.TokenType,
 		RefreshToken: response.RefreshToken,
 		Expiry:       time.Now().Add(time.Duration(response.ExpiresIn) * time.Second),
-	}, nil
+	}
+	return u.OauthToken, nil
 }
 
 func (u *User) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	return oauth2.NewClient(
-		req.Context(),
-		oauth2.ReuseTokenSource(u.token, u)).
+	return oauth2.NewClient(req.Context(), u).
 		Transport.
 		RoundTrip(req)
 }

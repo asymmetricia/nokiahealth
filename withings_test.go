@@ -78,7 +78,7 @@ func LoadConfig(t *testing.T) {
 		}
 	}
 
-	tc.RefreshToken = testUser.RefreshToken
+	tc.RefreshToken = testUser.OauthToken.RefreshToken
 	f, err := os.OpenFile("./test.toml", os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 	require.NoError(t, err)
 	enc := toml.NewEncoder(f)

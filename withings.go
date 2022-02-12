@@ -228,9 +228,8 @@ func (c *Client) NewUserFromAuthCode(ctx context.Context, code string) (*User, e
 	}
 
 	u := &User{
-		Client:       c,
-		RefreshToken: t.RefreshToken,
-		token:        t,
+		Client:     c,
+		OauthToken: t,
 	}
 
 	u.HTTPClient = &http.Client{Transport: u}
