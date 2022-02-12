@@ -1,6 +1,4 @@
 
-<img align="right" src="./nh_logo_small.png"/>
-
 # Go client for the Withings API
 
 This is a go client that allows easy access to the Withings API and as of v2 supports the required Oauth2. More documentation regarding the Withings API can be found [here](http://developer.withings.com/oauth2/#tag/introduction). More detailed documentation of the client can be found in the [godocs](https://godoc.org/github.com/asymmetricia/withings).
