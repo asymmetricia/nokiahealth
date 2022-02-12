@@ -22,8 +22,34 @@ type User struct {
 	HTTPClient   *http.Client
 }
 
-// NewUserFromRefreshToken generates a new user that the refresh token is for.
-// At time of first use, a new access token will be retrieved.
+// NewUserFromAccessToken returns a user with the given access token. If it's
+// expired, refreshToken is used to retrieve a refresh token. The resulting user
+// may have a different refresh token, and this should be checked and recorded if
+// it changes.
+func (c *Client) NewUserFromAccessToken(ctx context.Context, accessToken string, tokenExpiry time.Time, refreshToken string) (*User, error) {
+	u := &User{
+		Client:       c,
+		RefreshToken: refreshToken,
+		token: &oauth2.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			Expiry:       tokenExpiry,
+		},
+	}
+
+	u.HTTPClient = &http.Client{Transport: u}
+
+	if u.token.Expiry.After(time.Now()) {
+		return c.NewUserFromRefreshToken(ctx, refreshToken)
+	}
+
+	return u, nil
+}
+
+// NewUserFromRefreshToken generates a new user that the refresh token is for. At
+// time of first use, a new access token will be retrieved. The user may end up
+// with a different refresh token, and this should be checked and recorded if it
+// changes.
 func (c *Client) NewUserFromRefreshToken(ctx context.Context, refreshToken string) (*User, error) {
 	u := &User{
 		Client:       c,
