@@ -63,13 +63,14 @@ client := withings.NewClient(clientID, clientSecret, clientRedirectURL)
 ```
 **3. Generate the authorization URL.**
 ```go
-authURL, _, err := client.AuthCodeURL() // Ignoring the state in this example
-                                        // but in realworld use you will want
-                                        // to record this to compare to the
-                                        // state value returned by the redirect
-                                        // from Withings to verify its a redirect
-                                        // from your request.
-                                        // The stat is auto generated for you
+authURL, _, err := client.AuthCodeURL() // Ignoring the state (second return)
+                                        // in this example but in realworld use
+                                        // you will want to record this to
+                                        // compare to the state value returned
+                                        // by the redirect from Withings to
+                                        // verify its a redirect from your
+                                        // request.
+                                        // The state is auto generated for you
                                         // using cyrto/rand but the random
                                         // generation can be replaced with your
                                         // own function if you would like.
@@ -80,6 +81,12 @@ authURL, _, err := client.AuthCodeURL() // Ignoring the state in this example
 u, err := client.NewUserFromAuthCode(context.Background(), code) // Obviously
                                         // use whatever context you would like
                                         // here.
+
+// You should store the Access Token, Expiry, and Refresh Token values from
+// u.OauthToken. These are used to obtain a new user object later (see below).
+// You can obtain a user with _just_ the Refresh Token but Withings has rate
+// limits on this.
+
 if err != nil {
     panic(err) // Handle the error however is appropriate for your code.
 }
@@ -106,11 +113,18 @@ clientRedirectURL := "url" // This is the URL Withings will redirect the client 
 client := withings.NewClient(clientID, clientSecret, clientRedirectURL)
 ```
 **2. Generate a new user from the stored tokens.**
+
 ```go
-// This creates a new user based on the tokens provided. Technically the
-// accessToken can be gibberish and the refresh Token is the one that is really
-// required.
-u, err := client.NewUserFromRefreshToken(context.Background(), accessToken, refreshToken)
+
+// This creates a new user based on the tokens provided. The given access token
+// will continue to be used as long as expiry is in the future, after which
+// refresh token will be used to fetch a new set of tokens.
+
+// Note that after calling even just this function, the tokens may change,
+// including the refresh token; and you should store the updated token, if they
+// do change.
+
+u, err := client.NewUserFromRefreshToken(context.Background(), accessToken, expiry, refreshToken)
 ```
 **3. DONE - you now have a user that can make data requests.**
 
@@ -124,9 +138,19 @@ t := time.Now().AddDate(0, 0, -14)
 p.StartDate = &t
 
 m, err := u.GetBodyMeasures(&p)
+
 ```
 
-In most cases the response will contain all the information you need. Some methods provide additional optional processing that can provide a more usable form to the data. GetBodyMeasures is one of these methods. It's recommended to read the [docs](https://godoc.org/github.com/asymmetricia/withings) for each method to see how best to use them.
+**Note about Tokens**: After _any_ request to Withings, the user's `OauthToken`
+object might change. If the values _do_ change (*especially* `RefreshToken`),
+then you need to persist the new token values, otherwise you will no longer
+have access to the user.
+
+In most cases the response will contain all the information you need. Some
+methods provide additional optional processing that can provide a more usable
+form to the data. GetBodyMeasures is one of these methods. It's recommended to
+read the [docs](https://godoc.org/github.com/asymmetricia/withings) for each
+method to see how best to use them.
 
 ```go
 measures := m.ParseData()
