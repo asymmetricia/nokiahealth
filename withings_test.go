@@ -2,53 +2,95 @@ package nokiahealth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/jrmycanady/nokiahealth/enum/status"
+	"github.com/stretchr/testify/require"
 )
 
 type TestConfig struct {
 	ClientID       string
 	ConsumerSecret string
-	RedirectURL    string
-	AccessToken    string
 	RefreshToken   string
 }
 
-func LoadConfig() error {
+var testClient Client
+var testUser *User
+
+func LoadConfig(t *testing.T) {
 	rawConfigData, err := ioutil.ReadFile("./test.toml")
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
 	_, err = toml.Decode(string(rawConfigData), &tc)
-	if err != nil {
-		return err
+	require.NoError(t, err)
+
+	require.NotEmpty(t, tc.ClientID, "ClientID in test.toml is required- go "+
+		"register a new app pointed to http://localhost:8888")
+	require.NotEmpty(t, tc.ConsumerSecret, "ConsumerSecret in test.toml is "+
+		"required- go register a new app pointed to http://localhost:8888")
+
+	testClient = NewClient(tc.ClientID, tc.ConsumerSecret, "http://localhost:8888")
+
+	if testUser == nil && tc.RefreshToken != "" {
+		testUser, err = testClient.NewUserFromRefreshToken(context.Background(), tc.RefreshToken)
+		require.NoError(t, err, "try again after clearing refresh token from test.toml")
 	}
 
-	return nil
+	if testUser == nil {
+		url, state, err := testClient.AuthCodeURL()
+		require.NoError(t, err)
+		require.NoError(t, exec.Command("xdg-open", url).Start())
+
+		mux := http.NewServeMux()
+		sv := &http.Server{
+			Addr:    "localhost:8888",
+			Handler: mux,
+		}
+
+		mux.Handle("/", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			defer sv.Shutdown(context.Background())
+			require.NoError(t, req.ParseForm())
+
+			require.Equal(t, state, req.Form.Get("state"))
+
+			testUser, err = testClient.NewUserFromAuthCode(context.Background(), req.Form.Get("code"))
+			require.NoError(t, err)
+
+			rw.Header().Set("content-type", "text/plain")
+			rw.WriteHeader(http.StatusOK)
+			fmt.Fprintln(rw, "ok! close this window.")
+			if rw, ok := rw.(http.Flusher); ok {
+				rw.Flush()
+			}
+		}))
+
+		if err := sv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			require.NoError(t, err)
+		}
+	}
+
+	tc.RefreshToken = testUser.RefreshToken
+	f, err := os.OpenFile("./test.toml", os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	require.NoError(t, err)
+	enc := toml.NewEncoder(f)
+	require.NoError(t, enc.Encode(tc))
+	require.NoError(t, f.Sync())
+	require.NoError(t, f.Close())
 }
 
 var tc TestConfig
 
 func TestGetBodyMeasures(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
-
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
+	LoadConfig(t)
 
 	startDate := time.Now().AddDate(0, 0, -2)
 	endDate := time.Now()
@@ -58,34 +100,16 @@ func TestGetBodyMeasures(t *testing.T) {
 		EndDate:   &endDate,
 	}
 
-	m, err := u.GetBodyMeasures(&p)
-	if err != nil {
-		t.Fatalf("failed to get body measurements: %v", err)
-	}
+	m, err := testUser.GetBodyMeasures(&p)
+	require.NoError(t, err)
 
-	if m.Status != 0 {
-		t.Fatalf("failed to get body measurements with api error %d => %v", m.Status, m.Status.String())
-	}
+	require.Equal(t, m.Status, status.Status(0), m.Status.String())
 }
 
 func TestGetActivityMeasures(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-	c.IncludePath = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.GetActivityMeasures(nil)
+	m, err := testUser.GetActivityMeasures(nil)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v\n%s\n%s", err, m.RawResponse, m.Path)
 	}
@@ -96,22 +120,9 @@ func TestGetActivityMeasures(t *testing.T) {
 }
 
 func TestGetIntradayActivity(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.GetIntradayActivity(nil)
+	m, err := testUser.GetIntradayActivity(nil)
 	if err != nil {
 		t.Fatalf("failed to get intra day measures: %v", err)
 	}
@@ -122,22 +133,9 @@ func TestGetIntradayActivity(t *testing.T) {
 }
 
 func TestGetWorkouts(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.GetWorkouts(nil)
+	m, err := testUser.GetWorkouts(nil)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -148,22 +146,9 @@ func TestGetWorkouts(t *testing.T) {
 }
 
 func TestGetSleepMeasures(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.GetSleepMeasures(nil)
+	m, err := testUser.GetSleepMeasures(nil)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -174,22 +159,9 @@ func TestGetSleepMeasures(t *testing.T) {
 }
 
 func TestGetSleepSummary(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.GetSleepSummary(nil)
+	m, err := testUser.GetSleepSummary(nil)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -200,31 +172,17 @@ func TestGetSleepSummary(t *testing.T) {
 }
 
 func TestNotificationFunctions(t *testing.T) {
-
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
-
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
+	LoadConfig(t)
 
 	// Test creating a notification
 	var ul *url.URL
-	ul, err = url.Parse("http://example.com")
+	ul, err := url.Parse("http://example.com")
 	p := CreateNotificationParam{
 		CallbackURL: *ul,
 		Comment:     "this is a test",
 		Appli:       1,
 	}
-	n, err := u.CreateNotification(&p)
+	n, err := testUser.CreateNotification(&p)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -240,7 +198,7 @@ func TestNotificationFunctions(t *testing.T) {
 		Appli:       &appli,
 	}
 
-	gn, err := u.GetNotificationInformation(&p2)
+	gn, err := testUser.GetNotificationInformation(&p2)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -254,7 +212,7 @@ func TestNotificationFunctions(t *testing.T) {
 		CallbackURL: *ul,
 		Appli:       &appli,
 	}
-	rn, err := u.RevokeNotification(&p3)
+	rn, err := testUser.RevokeNotification(&p3)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}
@@ -265,22 +223,9 @@ func TestNotificationFunctions(t *testing.T) {
 }
 
 func TestListNotifications(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Fatal("Failed to load config file.")
-	}
+	LoadConfig(t)
 
-	// Build the client.
-	c := NewClient(tc.ClientID, tc.ConsumerSecret, tc.RedirectURL)
-	c.SaveRawResponse = true
-
-	// Build the user
-	u, err := c.NewUserFromRefreshToken(context.Background(), tc.AccessToken, tc.RefreshToken)
-	if err != nil {
-		t.Fatalf("failed to create user: %s", err)
-	}
-
-	m, err := u.ListNotifications(nil)
+	m, err := testUser.ListNotifications(nil)
 	if err != nil {
 		t.Fatalf("failed to get body measurements: %v", err)
 	}

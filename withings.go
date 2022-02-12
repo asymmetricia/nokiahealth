@@ -1,6 +1,7 @@
 package nokiahealth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -68,7 +69,6 @@ type Client struct {
 // required parameters can be obtained when developers register with Withings
 // to use the API.
 func NewClient(clientID string, clientSecret string, redirectURL string) Client {
-
 	return Client{
 		OAuth2Config: &oauth2.Config{
 			RedirectURL:  redirectURL,
@@ -115,63 +115,126 @@ func (c *Client) AuthCodeURL() (url string, state string, err error) {
 // create user is used instead. The state is also not validated and is left for the
 // calling methods.
 func (c *Client) GenerateAccessToken(ctx context.Context, code string) (*oauth2.Token, error) {
-	return c.OAuth2Config.Exchange(ctx, code)
+	form := url.Values{}
+	form.Set("action", "requesttoken")
+	form.Set("client_id", c.OAuth2Config.ClientID)
+	form.Set("client_secret", c.OAuth2Config.ClientSecret)
+	form.Set("grant_type", "authorization_code")
+	form.Set("code", code)
+	form.Set("redirect_uri", c.OAuth2Config.RedirectURL)
+	body := bytes.NewBufferString(form.Encode())
+
+	req, err := http.NewRequest("POST", "https://wbsapi.withings.net/v2/oauth2", body)
+	if err != nil {
+		return nil, fmt.Errorf("producing new request: %w", err)
+	}
+
+	res, err := (*WithingsRoundTripper)(http.DefaultClient).RoundTrip(req.WithContext(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("sending request: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		body, _ := ioutil.ReadAll(res.Body)
+		return nil, fmt.Errorf("non-2XX %d from server: %q", res.StatusCode, string(body))
+	}
+
+	var response struct {
+		UserId       UserId `json:"userid"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+		Scope        string `json:"scope"`
+		CsrfToken    string `json:"csrf_token"`
+		TokenType    string `json:"token_type"`
+	}
+
+	resBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading body: %w", err)
+	}
+
+	if err := json.Unmarshal(resBody, &response); err != nil {
+		return nil, fmt.Errorf("decoding body: %w", err)
+	}
+
+	return &oauth2.Token{
+		AccessToken:  response.AccessToken,
+		TokenType:    response.TokenType,
+		RefreshToken: response.RefreshToken,
+		Expiry:       time.Now().Add(time.Duration(response.ExpiresIn) * time.Second),
+	}, nil
 }
 
-// User is a Withings Health user account that can be interacted with via the
-// api.
-type User struct {
-	*Client
-	OauthToken *oauth2.Token
-	HTTPClient *http.Client
+// WithingsRoundTripper unwraps withings responses so the oauth2 library can
+// function happily.
+type WithingsRoundTripper http.Client
+
+func (w *WithingsRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	res, err := (*http.Client)(w).Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return res, nil
+	}
+
+	defer res.Body.Close()
+
+	var response struct {
+		Status int
+		Body   json.RawMessage
+	}
+
+	resBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body: %w", err)
+	}
+
+	if err := json.Unmarshal(resBody, &response); err != nil {
+		return nil, fmt.Errorf("error decoding response %q: %w", string(resBody), err)
+	}
+
+	if response.Status != 0 {
+		return nil, fmt.Errorf(
+			"bad status code %d in body, see "+
+				"https://developer.withings.com/api-reference/#section/Response-status"+
+				" -- full body was: %q",
+			response.Status,
+			string(resBody),
+		)
+	}
+
+	res.Body = ioutil.NopCloser(bytes.NewBuffer(response.Body))
+	return res, nil
 }
+
+var _ http.RoundTripper = (*WithingsRoundTripper)(nil)
 
 // NewUserFromAuthCode generates a new user by requesting the token using the
 // authentication code provided. This is generally only used after a user
 // has just authorized access and the client is processing the redirect.
 func (c *Client) NewUserFromAuthCode(ctx context.Context, code string) (*User, error) {
-	t, err := c.OAuth2Config.Exchange(ctx, code)
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+		Transport: (*WithingsRoundTripper)(http.DefaultClient),
+		Timeout:   c.Timeout,
+	})
+
+	t, err := c.GenerateAccessToken(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain token: %s", err)
 	}
 
 	u := &User{
-		Client:     c,
-		OauthToken: t,
+		Client:       c,
+		RefreshToken: t.RefreshToken,
+		token:        t,
 	}
 
 	u.HTTPClient = &http.Client{Transport: u}
 	return u, nil
-}
-
-func (u *User) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	src := u.OAuth2Config.TokenSource(req.Context(), u.OauthToken)
-
-	tok, err := src.Token()
-	if err != nil {
-		return nil, fmt.Errorf("getting token: %s", err)
-	}
-
-	if u.OauthToken.RefreshToken != tok.RefreshToken {
-		u.OauthToken = tok
-	}
-
-	return oauth2.NewClient(req.Context(), oauth2.StaticTokenSource(tok)).Transport.RoundTrip(req)
-}
-
-// NewUserFromRefreshToken generates a new user that the refresh token is for.
-// At time of first use, a new access token will be retrieved.
-func (c *Client) NewUserFromRefreshToken(ctx context.Context, refreshToken string) *User {
-	t := &oauth2.Token{RefreshToken: refreshToken}
-
-	u := &User{
-		Client:     c,
-		OauthToken: t,
-	}
-
-	u.HTTPClient = &http.Client{Transport: u}
-
-	return u
 }
 
 // GetIntradayActivity is the same as GetIntraDayActivityCtx but doesn't require a context to be provided.

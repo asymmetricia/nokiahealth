@@ -42,7 +42,7 @@ func main() {
 	// Provide user with authorization URL.
 	authURL, _, err := client.AuthCodeURL() // Ignoring state for this simple test.
 	if err != nil {
-		fmt.Println("failed to generate url: %s\n", err)
+		fmt.Printf("failed to generate url: %s\n", err)
 		return
 	}
 	fmt.Println("Navigate to the following URL and copy out the code from the params and provide below.")
@@ -61,9 +61,9 @@ func main() {
 		return
 	}
 
-	t, err := u.Token.Token()
+	t, err := u.Token()
 	if err != nil {
-		fmt.Printf("failed to get token: %s\n", err)
+		fmt.Printf("failed to get user token: %v\n", err)
 	}
 	fmt.Printf("Token:%s\nRefresh Token:%s", t.AccessToken, t.RefreshToken)
 }
