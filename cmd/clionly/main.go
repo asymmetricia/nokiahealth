@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asymmetricia/nokiahealth"
+	"github.com/asymmetricia/withings"
 )
 
 func main() {
@@ -33,8 +33,8 @@ func main() {
 	clientRedirectURL = strings.TrimSuffix(clientRedirectURL, "\n")
 	clientRedirectURL = strings.TrimSuffix(clientRedirectURL, "\r")
 
-	// Building new nokiahealth client.
-	client := nokiahealth.NewClient(clientID, clientSecret, clientRedirectURL)
+	// Building new withings client.
+	client := withings.NewClient(clientID, clientSecret, clientRedirectURL)
 	client.IncludePath = true
 	fmt.Println("--------------- Client ---------------")
 	fmt.Printf("Client ID: %s\nClient Secret: %s\nClient Redirect URL: %s\n", clientID, clientSecret, clientRedirectURL)
@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// Building body measure query parameter for 14 days back.
-	p := nokiahealth.BodyMeasuresQueryParams{}
+	p := withings.BodyMeasuresQueryParams{}
 	t := time.Now().AddDate(0, 0, -14)
 	p.StartDate = &t
 	m, err := u.GetBodyMeasures(&p)
@@ -81,6 +81,6 @@ func main() {
 
 	// retrieve something
 
-	// c := nokiahealth.NewClient("af0702e3669e3079392874a32b4e74e0fb9ea3c453ce097c24a599575b533297", "a8f6ae3e73508381e4d34395aa219d383f4a50373259422a3aea038fedb4e72c")
+	// c := withings.NewClient("af0702e3669e3079392874a32b4e74e0fb9ea3c453ce097c24a599575b533297", "a8f6ae3e73508381e4d34395aa219d383f4a50373259422a3aea038fedb4e72c")
 
 }

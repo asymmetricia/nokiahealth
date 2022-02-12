@@ -1,4 +1,4 @@
-module github.com/asymmetricia/nokiahealth
+module github.com/asymmetricia/withings
 
 go 1.17
 

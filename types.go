@@ -1,4 +1,4 @@
-package nokiahealth
+package withings
 
 import (
 	"math"
@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/asymmetricia/nokiahealth/enum/meastype"
-	"github.com/asymmetricia/nokiahealth/enum/sleepstate"
+	"github.com/asymmetricia/withings/enum/meastype"
+	"github.com/asymmetricia/withings/enum/sleepstate"
 
-	"github.com/asymmetricia/nokiahealth/enum/devtype"
-	"github.com/asymmetricia/nokiahealth/enum/status"
+	"github.com/asymmetricia/withings/enum/devtype"
+	"github.com/asymmetricia/withings/enum/status"
 
-	"github.com/asymmetricia/nokiahealth/enum/workouttype"
+	"github.com/asymmetricia/withings/enum/workouttype"
 )
 
 // GetFieldName returns the json filed name for the field if one is found. If

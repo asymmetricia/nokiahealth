@@ -1,4 +1,4 @@
-package nokiahealth
+package withings
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/asymmetricia/nokiahealth/enum/status"
+	"github.com/asymmetricia/withings/enum/status"
 	"github.com/stretchr/testify/require"
 )
 

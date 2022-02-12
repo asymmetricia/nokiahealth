@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/asymmetricia/nokiahealth"
+	"github.com/asymmetricia/withings"
 )
 
 func main() {
@@ -32,8 +32,8 @@ func main() {
 	clientRedirectURL = strings.TrimSuffix(clientRedirectURL, "\n")
 	clientRedirectURL = strings.TrimSuffix(clientRedirectURL, "\r")
 
-	// Building new nokiahealth client.
-	client := nokiahealth.NewClient(clientID, clientSecret, clientRedirectURL)
+	// Building new withings client.
+	client := withings.NewClient(clientID, clientSecret, clientRedirectURL)
 	client.IncludePath = true
 	fmt.Println("--------------- Client ---------------")
 	fmt.Printf("Client ID: %s\nClient Secret: %s\nClient Redirect URL: %s\n", clientID, clientSecret, clientRedirectURL)

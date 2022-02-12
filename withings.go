@@ -1,4 +1,4 @@
-package nokiahealth
+package withings
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asymmetricia/nokiahealth/enum/status"
+	"github.com/asymmetricia/withings/enum/status"
 	"golang.org/x/oauth2"
 )
 

@@ -1,5 +1,5 @@
 /*
-Package nokiahealth is a client module for working with the Withings (previously Nokia Health (previously Withings)) API. The current version (v2) of this module has been updated to work with the newer Oauth2 implementation of the API.
+Package withings is a client module for working with the Withings (previously Nokia Health (previously Withings)) API. The current version (v2) of this module has been updated to work with the newer Oauth2 implementation of the API.
 
 Authorization Overview
 
@@ -7,7 +7,7 @@ As with all Oauth2 APIs, you must obtain authorization to access the users data.
 	http://developer.withings.com/oauth2/#tag/introduction
 
 Once you have your client information you can now create a new client. You will need to also provide the redirectURL you provided during application registration. This URL is where the user will be redirected to and will include the code you need to generate the accessToken needed to access the users data. Under normal situations you should have an http server listening on that address and pull the code from the URL query parameters.
-	client := nokiahealth.NewClient(clientID, clientSecret, clientRedirectURL)
+	client := withings.NewClient(clientID, clientSecret, clientRedirectURL)
 
 You can now use the client to generate the authorization URL the user needs to navigate to. This URL will take the user to a page that will prompt them to allow your application to access their data. The state string returned by the method is a randomly generated BASE64 string using the crypto/rand module. It will be returned in the redirect as a query parameter and the two values verified they match. It's not required, but useful for security reasons.
 	authURL, state, err := client.AuthCodeURL()
@@ -73,4 +73,4 @@ Oauth2 Scopes
 By default the client will request all known scopes. If you would like to pair down this you can change the scope by using the SetScope method of the client. Consts in the form of ScopeXxx are provided to aid selection.
 
 */
-package nokiahealth
+package withings

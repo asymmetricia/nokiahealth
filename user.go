@@ -1,4 +1,4 @@
-package nokiahealth
+package withings
 
 import (
 	"bytes"
